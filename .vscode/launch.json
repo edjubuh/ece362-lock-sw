@@ -11,7 +11,7 @@
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
-            "svdFile": "CMSIS-SVD_Schema_1_0.xsd",
+            "svdFile": "STM32F0xx.svd",
             "device": "STM32F051R8",
             "configFiles": [
                 "board/stm32f0discovery.cfg"
