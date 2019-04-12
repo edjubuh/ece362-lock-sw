@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "*.ll": "lex",
+        "stm32f0_discovery.h": "c"
+    },
+    "cquery.cacheDirectory": "${workspaceFolder}/.vscode/cquery_cached_index/",
+    "cquery.launch.command": "C:\\usr\\cquery-win-x64\\cquery.exe",
+    "cortex-debug.openocdPath": "C:\\usr\\gnu-mcu-eclipse-openocd-0.10.0-11-20190118-1134-win64\\GNU MCU Eclipse\\OpenOCD\\0.10.0-11-20190118-1134\\bin\\openocd.exe"
+}

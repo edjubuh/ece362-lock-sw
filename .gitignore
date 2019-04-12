@@ -1,0 +1,7 @@
+.vscode/*
+
+!.vscode/*.json
+.vscode/.*.json
+
+bin
+compile_commands.json
