@@ -30,6 +30,9 @@ int main(void)
   ssd1306_fills(data);
 	for(;;) {
     STM_EVAL_LEDToggle(LED3);
-    millis_wait(1000);
+    millis_wait(500);
+    ssd1306_sleep();
+    millis_wait(500);
+    ssd1306_wake();
   }
 }

@@ -40,7 +40,7 @@ void ssd1306_init(void)
         0x00, // horizontal addressing mode
         0xC8, // Normal Scan Mode (not flipped vertically)
         0x81, // Set contrast
-        0xFF, // Maximum contrast
+        0x8F, // Maximum contrast
         0xA1, // flip horizontally
         0xA6, // Non-inverted color
         0xA8, // set multiplex ratio
@@ -139,4 +139,12 @@ void ssd1306_fills(uint8_t const * const buf) {
 		.page_end = SSD1306_HEIGHT
 	};
 	ssd1306_fill(buf, bounds);
+}
+
+void ssd1306_sleep() {
+	ssd1306_cmd(0xAE);
+}
+
+void ssd1306_wake() {
+	ssd1306_cmd(0xAF);
 }
