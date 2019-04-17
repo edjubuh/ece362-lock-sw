@@ -56,8 +56,8 @@ void ssd1306_init(void)
         0x12,
         0xDB, // Set vcomh
         0x20, // 0.77*Vcc
-        0x8D, // DC-DC enable
-        0x14,
+        0x8D, // Change charge pump
+        0x14, // to enabled
         0xAF, // turn on SSD1306
     };
     ssd1306_cmds(init_seq, sizeof init_seq);
