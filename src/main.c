@@ -12,22 +12,13 @@
 #include "stm32f0xx.h"
 #include "stm32f0_discovery.h"
 
-#include <stdio.h>
+#include "common.h"
 
-void nano_wait(unsigned int n) {
-    asm(    "        mov r0,%0\n"
-            "repeat: sub r0,#83\n"
-            "        bgt repeat\n" : : "r"(n) : "r0", "cc");
-}
-
-extern void serial_init(void);
 int main(void)
 {
-  serial_init();
   STM_EVAL_LEDInit(LED3);
 	for(;;) {
     STM_EVAL_LEDToggle(LED3);
-    printf("Hello!\n");
-    nano_wait(250000000);
+    millis_wait(1000);
   }
 }
