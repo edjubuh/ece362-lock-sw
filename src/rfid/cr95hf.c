@@ -52,60 +52,43 @@ void DMA1_Channel4_5_IRQHandler(void)
 
 void cr95hf_init()
 {
+    /**
+     * PA2: Transmitter to CR95HF. Configure to AF1 (USART2_TX)
+     * PA3: Receiver from CR95HF. Configured to AF1 (USART2_RX)
+     */
     RCC->AHBENR |= RCC_AHBENR_GPIOAEN | RCC_AHBENR_DMA1EN;
-    GPIOA->MODER &= ~(GPIO_MODER_MODER1 | GPIO_MODER_MODER2 | GPIO_MODER_MODER3);
-    GPIOA->MODER |= GPIO_MODER_MODER1_0 | GPIO_MODER_MODER2_1 | GPIO_MODER_MODER3_1;
+    GPIOA->MODER &= ~(GPIO_MODER_MODER2 | GPIO_MODER_MODER3);
+    GPIOA->MODER |= GPIO_MODER_MODER2_1 | GPIO_MODER_MODER3_1;
     GPIOA->AFR[0] &= ~(0x0000ff00);
     GPIOA->AFR[0] |= (1 << (2 * 4)) | (1 << (3 * 4));
 
+    /**
+     * Enable DMA Channel for USART2_TX: DMA1_Channel4
+     * Peripheral address is USART2's transmitter data register
+     * Memory address is dma_tx_buf
+     * DMA IRQ on transfer complete shuts down DMA
+     */
     DMA_TX->CCR = DMA_CCR_DIR | DMA_CCR_MINC | DMA_CCR_TCIE;
     DMA_TX->CPAR = (uint32_t)&(USART2->TDR);
     DMA_TX->CMAR = (uint32_t)dma_tx_buf;
     NVIC->ISER[0] = (1 << DMA1_Channel4_5_IRQn);
 
+    /**
+     * Configure USART2
+     */
     RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
-    USART2->CR1 = 0;
-    USART2->CR2 &= ~USART_CR2_STOP;
-    USART2->CR2 |= USART_CR2_STOP_1;
-    USART2->CR1 &= ~USART_CR1_OVER8;
+    USART2->CR1 = 0; // Reset CR1 (and disable USART2 in the process)
+    USART2->CR2 = USART_CR2_STOP_1;
+    USART2->CR3 = USART_CR3_DMAT;
     USART2->BRR = 0x341;
-    USART2->CR3 |= USART_CR3_DMAT;
     USART2->CR1 |= USART_CR1_RXNEIE | USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
-    while (!(USART2->ISR & USART_ISR_REACK))
-        ;
-    while (!(USART2->ISR & USART_ISR_TEACK))
-        ;
-
+    while (!(USART2->ISR & USART_ISR_REACK));
+    while (!(USART2->ISR & USART_ISR_TEACK));
     NVIC->ISER[0] = (1 << USART2_IRQn);
 
+    // CR95HF initialization
     USART2->TDR = 0x00; // pull IRQ_IN/RX low for a short period
     millis_wait(11); // wait 11 ms for HFO setup time
-}
-
-bool cr95hf_echo()
-{
-    while(DMA_TX->CCR & DMA_CCR_EN) asm("wfi"); // wait for running transaction to end
-    while (!(USART2->ISR & USART_ISR_TXE));
-
-    // Disable RX IRQ and TX DMA, if on
-    uint32_t cr1_mask = USART2->CR1 & (USART_CR1_RXNEIE | USART_CR1_TE);
-    uint32_t cr3_mask = USART2->CR3 & USART_CR3_DMAT;
-    USART2->CR1 &= ~cr1_mask;
-    USART2->CR3 &= ~cr3_mask;
-
-    USART2->CR1 |= USART_CR1_TE;
-    while (!(USART2->ISR & USART_ISR_TEACK));
-
-    USART2->TDR = 0x55;
-    uint32_t start = millis();
-    while (!(USART2->ISR & USART_ISR_RXNE) && (millis() - start) < 10)
-        ;
-    bool rv = (USART2->ISR & USART_ISR_RXNE) && USART2->RDR == 0x55;
-
-    // restore RX IRQ and TX DMA settings
-    USART2->CR1 |= cr1_mask;
-    USART2->CR3 |= cr3_mask;
-    return rv;
 }
 
 void cr95hf_send_cmd(uint8_t cmd, uint8_t const *const buf, uint8_t len)
@@ -129,6 +112,45 @@ void cr95hf_recv_data(struct cr95hf_rx *const resp)
     ready = false;
 }
 
+/**
+ * See Section 5.10 of CR95HF Datasheet (DocID018669 Rev 11)
+ * Send 0x55. Get 0x55 back. Makes sense.
+ *
+ * This method does it without any of the DMA/IRQ fanciness for simplicity.
+ */
+bool cr95hf_echo()
+{
+    while(DMA_TX->CCR & DMA_CCR_EN) asm("wfi"); // wait for running transaction to end
+    while (!(USART2->ISR & USART_ISR_TXE));
+
+    // Disable RX IRQ and TX DMA, if on
+    uint32_t cr1_mask = USART2->CR1 & (USART_CR1_RXNEIE | USART_CR1_TE);
+    uint32_t cr3_mask = USART2->CR3 & USART_CR3_DMAT;
+    USART2->CR1 &= ~cr1_mask;
+    USART2->CR3 &= ~cr3_mask;
+
+    USART2->CR1 |= USART_CR1_TE;
+    while (!(USART2->ISR & USART_ISR_TEACK));
+
+    USART2->TDR = 0x55;
+
+    uint32_t start = millis();
+    while (!(USART2->ISR & USART_ISR_RXNE) && (millis() - start) < 5)
+        ;
+    bool rv = (USART2->ISR & USART_ISR_RXNE) && USART2->RDR == 0x55;
+
+    // restore RX IRQ and TX DMA settings
+    USART2->CR1 |= cr1_mask;
+    USART2->CR3 |= cr3_mask;
+    return rv;
+}
+
+/**
+ * See Section 5.3 of CR95HF Datasheet (DocID018669 Rev 11)
+ * Get brief information about the CR95HF and its revision
+ *
+ * Added mostly for completion and testing of the send_cmd/recv_data IRQ/DMA pipeline
+ */
 uint8_t cr95hf_idn(struct cr95hf_idn_rx* const resp) {
     rx = (struct cr95hf_rx* const)resp; // set rx early in case we get a resonse quickly
     cr95hf_send_cmd(0x01, NULL, 0);
@@ -136,6 +158,10 @@ uint8_t cr95hf_idn(struct cr95hf_idn_rx* const resp) {
     return resp->header.code;
 }
 
+/**
+ * See Section 5.4 of CR95HF Datasheet (DocID018669 Rev 11)
+ * Select a protocol (or turn off the antenna)
+ */
 uint8_t cr95hf_proto(enum cr95hf_protocol protocol, uint8_t const * const parameters, const uint8_t len, struct cr95hf_proto_rx * const resp) {
     uint8_t buf[len + 1];
     buf[0] = protocol;
@@ -147,6 +173,10 @@ uint8_t cr95hf_proto(enum cr95hf_protocol protocol, uint8_t const * const parame
     return resp->header.code;
 }
 
+/**
+ * See Section 5.5 of CR95HF Datasheet (DocID018669 Rev 11)
+ * Send/Recv command with the antenna. Protocol specific data
+ */
 uint8_t cr95hf_sendrecv(uint8_t const * const data, const uint8_t len, struct cr95hf_rx* const resp) {
     rx = (struct cr95hf_rx* const)resp; // set rx early in case we get a resonse quickly
     cr95hf_send_cmd(0x04, data, len);
