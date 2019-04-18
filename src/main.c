@@ -32,7 +32,7 @@ int main(void)
   // }
   millis_wait(50);
 
-  uint8_t resp = iso14443a_select();
+  uint8_t resp = iso14443a_proto_select();
   if(resp) {
     STM_EVAL_LEDOn(LED4);
   }
@@ -56,9 +56,13 @@ int main(void)
     if (iso14443a_tag_present())
     {
       STM_EVAL_LEDOn(LED4);
+      struct iso14443a_uid uid;
+      uint8_t sak = iso14443a_get_uid(&uid);
+      asm("nop");
     } else {
       STM_EVAL_LEDOff(LED4);
     }
+
     ssd1306_sleep();
     millis_wait(500);
     ssd1306_wake();

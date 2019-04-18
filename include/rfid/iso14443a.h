@@ -1,3 +1,9 @@
+/**
+ * Functions and macros based on en.stsw-stm320006, developed by ST MMY Application Team
+ *
+ * Provides functions for using ISO/IEC 14443-3 (Type A) and ISO/IEC 14443-4 (Type A) with CR95HF
+ */
+
 #ifndef _RFID_ISO14443A_H_
 #define _RFID_ISO14443A_H_
 
@@ -31,6 +37,7 @@
 #define ISO14443A_NVB_70								0x70
 
 /* ATQ FLAG */
+#define ISO14443A_ATQA_UID_MASK							0xC0
 #define ISO14443A_ATQA_UID_SINGLESIZE					0
 #define	ISO14443A_ATQA_UID_DOUBLESIZE					1
 #define ISO14443A_ATQA_UID_TRIPLESIZE					2
@@ -84,7 +91,7 @@
 #define ISO14443A_MASK_PPS_CID							0x0F
 #define ISO14443A_MASK_14443_4_COMPATIBLE				0x24
 #define ISO14443A_MASK_SAK_UIDNOTCOMPLETE				0x04
-#define ISO14443A_MASK_UIDSIZE						    0x03
+#define ISO14443A_MASK_UIDSIZE							0x03
 
 /* ISO14443_A offset */
 #define ISO14443A_OFFSET_APPENDCRC						0x00
@@ -94,6 +101,7 @@
 #define ISO14443A_OFFSET_NVB							0x04
 #define ISO14443A_OFFSET_UIDSIZEBITFRAME				0x06
 #define ISO14443A_OFFSET_RATS_FSDI						0x04
+#define ISO14443A_OFFSET_UIDSIZE						6
 
 
 /* ISO14443_A error code */
@@ -116,7 +124,30 @@ struct iso14443a_atqa {
     struct iso14443a_rx_ftr footer;
 };
 
-uint8_t iso14443a_select();
+struct iso14443a_sak {
+    struct cr95hf_rx_hdr header;
+    uint8_t sak;
+    struct iso14443a_rx_ftr footer;
+};
+
+struct iso14443a_uid_cln {
+    struct cr95hf_rx_hdr header;
+    uint8_t message[4];
+    uint8_t bcc;
+    struct iso14443a_rx_ftr footer;
+};
+
+struct iso14443a_uid {
+    enum {
+        SINGLE = ISO14443A_NBBYTE_UIDSINGLE,
+        DOUBLE = ISO14443A_NBBYTE_UIDDOUBLE,
+        TRIPLE = ISO14443A_NBBYTE_UIDTRIPLE
+    } size;
+    uint8_t uid[TRIPLE]; // max size is triple (10 bytes)
+};
+
+uint8_t iso14443a_proto_select();
 bool iso14443a_tag_present();
+uint8_t iso14443a_get_uid(struct iso14443a_uid * const uid);
 
 #endif
