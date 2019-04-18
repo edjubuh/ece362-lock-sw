@@ -53,12 +53,12 @@ int main(void)
     // if(cr95hf_echo()) {
     //  STM_EVAL_LEDToggle(LED4); 
     // }
-    if (iso14443a_tag_present())
-    {
-      STM_EVAL_LEDOn(LED4);
-    } else {
-      STM_EVAL_LEDOff(LED4);
-    }
+    // if (iso14443a_tag_present())
+    // {
+    //   STM_EVAL_LEDOn(LED4);
+    // } else {
+    //   STM_EVAL_LEDOff(LED4);
+    // }
     ssd1306_sleep();
     millis_wait(500);
     ssd1306_wake();

@@ -4,15 +4,14 @@
 
 #include "stm32f0xx.h"
 
-#define DMA_TX DMA1_Channel5
+#define DMA_TX DMA1_Channel4
 
 struct cr95hf_rx * rx;
 volatile bool ready = false;
 void USART2_IRQHandler(void)
 {
-    if(rx) {
+    if(rx && USART2->ISR & USART_ISR_RXNE) {
         USART2->CR1 &= ~USART_CR1_RXNEIE;
-        while (!(USART2->ISR & USART_ISR_RXNE));
         rx->header.code = USART2->RDR;
         while (!(USART2->ISR & USART_ISR_RXNE))
             ;
@@ -29,7 +28,7 @@ void USART2_IRQHandler(void)
             *ptr = USART2->RDR;
             ptr++;
         }
-        USART2->CR2 |= USART_CR1_RXNEIE;
+        USART2->CR1 |= USART_CR1_RXNEIE;
         ready = true;
     } else {
         USART2->RQR = USART_RQR_RXFRQ;
@@ -58,12 +57,13 @@ void cr95hf_init()
 
     NVIC->ISER[0] = (1 << USART2_IRQn);
 
-    // USART2->TDR = 0x00;
-    // millis_wait(11); // wait 11 ms for HFO setup time
+    USART2->TDR = 0x00; // pull IRQ_IN/RX low for a short period
+    millis_wait(11); // wait 11 ms for HFO setup time
 }
 
 bool cr95hf_echo()
 {
+    uint32_t mask = USART1->CR2 & USART_CR1_RXNEIE;
     USART2->CR1 &= ~USART_CR1_RXNEIE;
     while (!(USART2->ISR & USART_ISR_TXE))
         ;
@@ -72,7 +72,7 @@ bool cr95hf_echo()
     while (!(USART2->ISR & USART_ISR_RXNE) && (millis() - start) < 10)
         ;
     bool rv = (USART2->ISR & USART_ISR_RXNE) && USART2->RDR == 0x55;
-    USART2->CR1 |= USART_CR1_RXNEIE;
+    USART2->CR1 |= mask;
     return rv;
 }
 
@@ -90,31 +90,14 @@ void cr95hf_send_cmd(uint8_t cmd, uint8_t const *const buf, uint8_t len)
 
 void cr95hf_recv_data(struct cr95hf_rx *const resp)
 {
-    while (!(USART2->ISR & USART_ISR_RXNE));
-    rx->header.code = USART2->RDR;
-    while (!(USART2->ISR & USART_ISR_RXNE))
-        ;
-    rx->header.len = USART2->RDR;
-    if (rx->header.code & 0x80)
-    {
-        rx->header.len |= ((rx->header.code & 0x60) << 3);
+    rx = resp;
+    const uint32_t start = millis();
+    while(!ready /*&& (millis() - start) < 10*/) asm("wfi");
+    if(!ready) {
+        resp->header.code = -1;
     }
-    uint8_t *ptr = rx->data;
-    for (size_t i = 0; i < rx->header.len; i++)
-    {
-        while (!(USART2->ISR & USART_ISR_RXNE))
-            ;
-        *ptr = USART2->RDR;
-        ptr++;
-    }
-    // rx = resp;
-    // const uint32_t start = millis();
-    // while(!ready /*&& (millis() - start) < 10*/) asm("wfi");
-    // if(!ready) {
-    //     resp->header.code = -1;
-    // }
-    // rx = NULL;
-    // ready = false;
+    rx = NULL;
+    ready = false;
 }
 
 uint8_t cr95hf_idn(struct cr95hf_idn_rx* const resp) {
