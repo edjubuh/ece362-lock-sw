@@ -12,15 +12,17 @@
 #include "stm32f0_discovery.h"
 
 #include "common.h"
-#include "ssd1306.h"
+#include "numpad.h"
 #include "rfid/cr95hf.h"
 #include "rfid/iso14443a.h"
+#include "ssd1306.h"
 
 int main(void)
 {
   systick_init();
   ssd1306_init();
   cr95hf_init();
+  numpad_init();
 
   STM_EVAL_LEDInit(LED3);
   STM_EVAL_LEDInit(LED4);
@@ -30,7 +32,7 @@ int main(void)
   // if(idn.header.code) {
   //   STM_EVAL_LEDOn(LED4);
   // }
-  millis_wait(50);
+  // millis_wait(50);
 
   uint8_t resp = iso14443a_proto_select();
   if(resp) {
