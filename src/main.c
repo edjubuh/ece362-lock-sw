@@ -48,21 +48,36 @@ int main(void)
   }
   ssd1306_fills(data);
 
+  struct cr95hf_idle_tx idle_setting = {
+    .wu_src = WU_TAG_DETECT,
+    .enter = ENTER_TAG_DETECTOR,
+    .wu_control = WU_TAG_DETECTOR,
+    .leave_control = LEAVE_TAG_DETECTOR,
+    .wu_period = 0x20, // default value
+    .osc_start = 0x60,
+    .dac_start = 0x60,
+    .dac_data = cr95hf_calibrate_tag_detection(),
+    .swing_count = 0x3F, // recommended value
+    .max_sleep = 0 // unused
+  };
+  cr95hf_idle(&idle_setting);
+
   for (;;)
   {
     STM_EVAL_LEDToggle(LED3);
     millis_wait(500);
-    if(cr95hf_echo()) {
-     STM_EVAL_LEDToggle(LED4);
-    }
-    if (iso14443a_tag_present())
-    {
-      STM_EVAL_LEDOn(LED4);
-      struct iso14443a_uid uid;
-      uint8_t sak = iso14443a_get_uid(&uid);
-      asm("nop");
-    } else {
+    if(cr95hf_is_awake(NULL) == 0x00) {
+      iso14443a_proto_select();
+      if (iso14443a_tag_present())
+      {
+        STM_EVAL_LEDOn(LED4);
+        struct iso14443a_uid uid;
+        uint8_t sak = iso14443a_get_uid(&uid);
+        asm("nop");
+        millis_wait(20);
+      }
       STM_EVAL_LEDOff(LED4);
+      cr95hf_idle(&idle_setting);
     }
 
     ssd1306_sleep();

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Helper script to generate compile_commands.json from running Make
+# If you don't want a compile_commands.json for your editor, running make is ok
+
 from libscanbuild.compilation import Compilation, CompilationDatabase
 from libscanbuild.arguments import create_intercept_parser
 import itertools

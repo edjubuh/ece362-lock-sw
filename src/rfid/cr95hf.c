@@ -6,7 +6,7 @@
 
 // IRQ Handler for receiving data
 // DMA solution won't work because we won't know how much data to receive. Could do a mix of both... but why?
-struct cr95hf_rx * rx;
+volatile struct cr95hf_rx * rx;
 volatile bool ready = false;
 void USART2_IRQHandler(void)
 {
@@ -103,7 +103,6 @@ void cr95hf_send_cmd(uint8_t cmd, uint8_t const *const buf, uint8_t len)
 
 void cr95hf_recv_data(struct cr95hf_rx *const resp)
 {
-    rx = resp;
     const uint32_t start = millis();
     while(!ready /*&& (millis() - start) < 10*/) asm("wfi");
     if(!ready) {
@@ -183,3 +182,154 @@ uint8_t cr95hf_sendrecv(uint8_t const * const data, const uint8_t len, struct cr
     cr95hf_recv_data((struct cr95hf_rx * const)resp);
     return resp->header.code;
 }
+
+struct cr95hf_rx idle_response;
+/**
+ * See Section 5.6 of CR95HF Datasheet (DocID018669 Rev 11)
+ * Idle command. See Section 5.6.1 for parameter description
+ * 
+ * Does not wait for the device to come out of idle. Use cr95hf_wake_awake or cr95hf_is_awake to block/poll
+ */
+uint8_t cr95hf_idle(struct cr95hf_idle_tx const * const settings) {
+    rx = &idle_response;
+    cr95hf_send_cmd(0x07, (uint8_t const * const)settings, sizeof *settings);
+    return 0;
+}
+
+/**
+ * See Section 5.6 of CR95HF Datasheet (DocID018669 Rev 11)
+ * Idle command. See Section 5.6.1 for parameter description
+ * 
+ * Blocks until device comes out of idle
+ */
+uint8_t cr95hf_wait_awake(uint8_t * const reason) {
+    cr95hf_recv_data(&idle_response);
+    if(idle_response.header.code == 0x00 && reason) {
+        *reason = idle_response.data[0];
+    }
+    return idle_response.header.code;
+}
+
+/**
+ * See Section 5.6 of CR95HF Datasheet (DocID018669 Rev 11)
+ * Idle command. See Section 5.6.1 for parameter description
+ * 
+ * Polls device if it's come out idle
+ */
+uint8_t cr95hf_is_awake(uint8_t * const reason) {
+    if(!ready) {
+        return 0xff;
+    }
+    if(idle_response.header.code == 0x00 && reason) {
+        *reason = idle_response.data[0];
+    }
+    ready = false;
+    return idle_response.header.code;
+}
+
+/**
+ * See Appendix B of CR95HF Datasheet (DocID018669 Rev 11)
+ */
+uint16_t cr95hf_calibrate_tag_detection() {
+    struct cr95hf_idle_tx idle_settings = {
+        .wu_src = WU_TIMEOUT | WU_TAG_DETECT,
+        .enter = ENTER_TAG_CALIBRATION,
+        .wu_control = WU_TAG_CALIBRATION,
+        .leave_control = LEAVE_TAG_CALIBRATION,
+        .wu_period = 0x20,
+        .osc_start = 0x06,
+        .dac_start = 0x06,
+        .dac_low = 0,
+        .dac_high = 0x00,
+        .swing_count = 0x3F,
+        .max_sleep = 0x01
+    };
+    // Step 0
+    uint8_t wakeup_reason;
+    cr95hf_idle(&idle_settings);
+    if(cr95hf_wait_awake(&wakeup_reason) || wakeup_reason != WU_TAG_DETECT) {
+        return 0xffff;
+    }
+    // Step 1
+    idle_settings.dac_high = 0xFC;
+    cr95hf_idle(&idle_settings);
+    if(cr95hf_wait_awake(&wakeup_reason) || wakeup_reason != WU_TIMEOUT) {
+        return 0xffff;
+    }
+    // Step 2
+    idle_settings.dac_high -= 0x80;
+    cr95hf_idle(&idle_settings);
+    if(cr95hf_wait_awake(&wakeup_reason)) {
+        return 0xffff;
+    }
+    // Step 3
+    if(wakeup_reason == WU_TIMEOUT) {
+        idle_settings.dac_high -= 0x40;
+    } else if(wakeup_reason == WU_TAG_DETECT) {
+        idle_settings.dac_high += 0x40;
+    } else {
+        return 0xffff;
+    }
+    cr95hf_idle(&idle_settings);
+    if(cr95hf_wait_awake(&wakeup_reason)) {
+        return 0xffff;
+    }
+    // Step 4
+    if(wakeup_reason == WU_TIMEOUT) {
+        idle_settings.dac_high -= 0x20;
+    } else if(wakeup_reason == WU_TAG_DETECT) {
+        idle_settings.dac_high += 0x20;
+    } else {
+        return 0xffff;
+    }
+    cr95hf_idle(&idle_settings);
+    if(cr95hf_wait_awake(&wakeup_reason)) {
+        return 0xffff;
+    }
+    // Step 5
+    if(wakeup_reason == WU_TIMEOUT) {
+        idle_settings.dac_high -= 0x10;
+    } else if(wakeup_reason == WU_TAG_DETECT) {
+        idle_settings.dac_high += 0x10;
+    } else {
+        return 0xffff;
+    }
+    cr95hf_idle(&idle_settings);
+    if(cr95hf_wait_awake(&wakeup_reason)) {
+        return 0xffff;
+    }
+    // Step 6
+    if(wakeup_reason == WU_TIMEOUT) {
+        idle_settings.dac_high -= 0x08;
+    } else if(wakeup_reason == WU_TAG_DETECT) {
+        idle_settings.dac_high += 0x08;
+    } else {
+        return 0xffff;
+    }
+    cr95hf_idle(&idle_settings);
+    if(cr95hf_wait_awake(&wakeup_reason)) {
+        return 0xffff;
+    }
+    // Step 7
+    if(wakeup_reason == WU_TIMEOUT) {
+        idle_settings.dac_high -= 0x04;
+    } else if(wakeup_reason == WU_TAG_DETECT) {
+        idle_settings.dac_high += 0x04;
+    } else {
+        return 0xffff;
+    }
+    cr95hf_idle(&idle_settings);
+    if(cr95hf_wait_awake(&wakeup_reason)) {
+        return 0xffff;
+    }
+    // Step 8
+    if(wakeup_reason == WU_TIMEOUT) {
+        idle_settings.dac_high -= 0x04;
+    } else if(wakeup_reason != WU_TAG_DETECT) {
+        return 0xffff;
+    }
+    idle_settings.dac_low = idle_settings.dac_high - 8;
+    idle_settings.dac_high = idle_settings.dac_high + 8;
+    return idle_settings.dac_data;
+}
+

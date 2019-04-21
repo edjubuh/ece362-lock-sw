@@ -2,6 +2,7 @@
 
 !.vscode/*.json
 .vscode/.*.json
+.vscode/c_cpp_properties.json
 
 bin
 compile_commands.json
