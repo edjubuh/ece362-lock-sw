@@ -11,5 +11,7 @@ void millis_wait(const uint32_t);
 
 uint32_t millis();
 void systick_init();
+void systick_enable();
+void systick_disable();
 
 #endif

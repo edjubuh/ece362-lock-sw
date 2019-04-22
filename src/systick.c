@@ -16,6 +16,16 @@ void systick_init()
     (void)SysTick_Config(RCC_Clocks.HCLK_Frequency / 1000);
 }
 
+void systick_disable() {
+    SysTick->CTRL = 0;
+}
+
+void systick_enable() {
+    RCC_ClocksTypeDef RCC_Clocks;
+    RCC_GetClocksFreq(&RCC_Clocks);
+    (void)SysTick_Config(RCC_Clocks.HCLK_Frequency / 1000);
+}
+
 uint32_t millis()
 {
     return ticks;

@@ -48,7 +48,7 @@ int main(void)
   // ssd1306_fills(data);
 
   struct cr95hf_idle_tx idle_setting = {
-    .wu_src = WU_TAG_DETECT,
+    .wu_src = WU_TAG_DETECT | WU_LOW_IRQ_IN,
     .enter = ENTER_TAG_DETECTOR,
     .wu_control = WU_TAG_DETECTOR,
     .leave_control = LEAVE_TAG_DETECTOR,
@@ -59,6 +59,8 @@ int main(void)
     .swing_count = 0x3F, // recommended value
     .max_sleep = 0 // unused
   };
+  ssd1306_clear();
+
   cr95hf_idle(&idle_setting);
 
   for (;;)

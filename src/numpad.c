@@ -1,7 +1,8 @@
 #include "stm32f0xx.h"
 
-#include "common.h"
 #include <sys/types.h>
+
+#include "common.h"
 
 uint8_t pressed[4];
 volatile uint8_t pos;
@@ -27,12 +28,12 @@ void numpad_init()
     GPIOB->MODER &= ~(GPIO_MODER_MODER13 | GPIO_MODER_MODER14 | GPIO_MODER_MODER15);
     GPIOB->MODER |= GPIO_MODER_MODER13_0 | GPIO_MODER_MODER14_0 | GPIO_MODER_MODER15_0;
 
-    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-    TIM3->PSC = (48 * 100 / 2) - 1; // counter period is 200 microseconds
-    TIM3->ARR = 1;
-    TIM3->DIER = TIM_DIER_UIE;
-    TIM3->CR1 |= TIM_CR1_CEN;
-    NVIC->ISER[0] = 1 << TIM3_IRQn;
+    RCC->APB2ENR |= RCC_APB2ENR_TIM16EN;
+    TIM16->PSC = (48 * 100 / 2) - 1; // counter period is 200 microseconds
+    TIM16->ARR = 1;
+    TIM16->DIER = TIM_DIER_UIE;
+    // TIM16->CR1 |= TIM_CR1_CEN;
+    NVIC->ISER[0] = 1 << TIM16_IRQn;
 
     RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
     TIM1->CCMR1 = TIM1->CCMR2 = 0xF1F1;
@@ -41,14 +42,17 @@ void numpad_init()
     TIM1->CR1 = TIM_CR1_CKD_1 | TIM_CR1_CEN;
     NVIC->ISER[0] = 1 << TIM1_CC_IRQn;
 
-    pos = 0;
+    pos = 0xff;
+
+    // Set all pins high to go into a lower-power mode that just waits for any button to be pressed
+    GPIOB->BSRR = GPIO_BSRR_BS_12 | GPIO_BSRR_BS_14 | GPIO_BSRR_BS_15;
 }
 
-volatile uint32_t tim3_cnt = 0;
-void TIM3_IRQHandler() {
-	tim3_cnt = (tim3_cnt + 1) & 0x7;
-	GPIOB->BSRR = (((tim3_cnt & 0x1) << (tim3_cnt >> 1)) << 13) | GPIO_BSRR_BR_13 | GPIO_BSRR_BR_14 | GPIO_BSRR_BR_15;
-	TIM3->SR &= ~TIM_SR_UIF;
+volatile uint32_t tim_cnt = 0;
+void TIM16_IRQHandler() {
+	tim_cnt = (tim_cnt + 1) & 0x7;
+	GPIOB->BSRR = (((tim_cnt & 0x1) << (tim_cnt >> 1)) << 13) | GPIO_BSRR_BR_13 | GPIO_BSRR_BR_14 | GPIO_BSRR_BR_15;
+	TIM16->SR &= ~TIM_SR_UIF;
 }
 
 uint8_t last_column = 0xff;
@@ -57,7 +61,7 @@ uint32_t last_capture = 0;
 // MUST READ TIM3_CNT WITHIN 20 MICROSECONDS!
 void TIM1_CC_IRQHandler(void)
 {
-    register uint8_t column = tim3_cnt >> 1;
+    register uint8_t column = tim_cnt >> 1;
     register uint8_t row = 0xff;
     register uint32_t unused __attribute__((unused));
     if(TIM1->SR & TIM_SR_CC1IF) {
@@ -77,6 +81,13 @@ void TIM1_CC_IRQHandler(void)
         row = 3;
     }
 
+    if(pos == 0xff) {
+        // We were in a low power mode - all columns were high
+        pos = 0;
+        TIM16->CR1 |= TIM_CR1_CEN;
+        return;
+    }
+
     if(row != 0xff) {
         register uint32_t current_time = millis();
         if(last_capture + 500 < current_time && (last_capture + 1000 < current_time || last_column != column || last_row != row)) {
@@ -86,6 +97,10 @@ void TIM1_CC_IRQHandler(void)
                 pos += 1;
             } else {
                 pos = 5;
+                // Go back to a low power mode, don't accept any more input from buttons
+                // until reset_keys() is called
+                TIM16->CR1 &= ~TIM_CR1_CEN;
+                GPIOB->BSRR = GPIO_BSRR_BR_13 | GPIO_BSRR_BR_14 | GPIO_BSRR_BR_15;
             }
         }
         last_column = column;
@@ -94,6 +109,7 @@ void TIM1_CC_IRQHandler(void)
 }
 
 uint8_t get_pressed_keys(uint8_t * const keys) {
+    if(pos == 0xff) return 0;
     if(keys) {
         size_t n = pos > 4 ? 4 : pos;
         for(size_t i = 0; i < n; i++) {
@@ -104,5 +120,7 @@ uint8_t get_pressed_keys(uint8_t * const keys) {
 }
 
 void reset_keys() {
-    pos = 0;
+    pos = 0xff;
+    TIM16->CR1 &= ~TIM_CR1_CEN;
+    GPIOB->BSRR = GPIO_BSRR_BS_13 | GPIO_BSRR_BS_14 | GPIO_BSRR_BS_15;
 }
