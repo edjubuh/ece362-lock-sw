@@ -264,9 +264,9 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 3
-    if(wakeup_reason == WU_TIMEOUT) {
+    if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x40;
-    } else if(wakeup_reason == WU_TAG_DETECT) {
+    } else if(wakeup_reason & WU_TAG_DETECT) {
         idle_settings.dac_high += 0x40;
     } else {
         return 0xffff;
@@ -276,9 +276,9 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 4
-    if(wakeup_reason == WU_TIMEOUT) {
+    if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x20;
-    } else if(wakeup_reason == WU_TAG_DETECT) {
+    } else if(wakeup_reason & WU_TAG_DETECT) {
         idle_settings.dac_high += 0x20;
     } else {
         return 0xffff;
@@ -288,9 +288,9 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 5
-    if(wakeup_reason == WU_TIMEOUT) {
+    if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x10;
-    } else if(wakeup_reason == WU_TAG_DETECT) {
+    } else if(wakeup_reason & WU_TAG_DETECT) {
         idle_settings.dac_high += 0x10;
     } else {
         return 0xffff;
@@ -300,9 +300,9 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 6
-    if(wakeup_reason == WU_TIMEOUT) {
+    if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x08;
-    } else if(wakeup_reason == WU_TAG_DETECT) {
+    } else if(wakeup_reason & WU_TAG_DETECT) {
         idle_settings.dac_high += 0x08;
     } else {
         return 0xffff;
@@ -312,9 +312,9 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 7
-    if(wakeup_reason == WU_TIMEOUT) {
+    if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x04;
-    } else if(wakeup_reason == WU_TAG_DETECT) {
+    } else if(wakeup_reason & WU_TAG_DETECT) {
         idle_settings.dac_high += 0x04;
     } else {
         return 0xffff;
@@ -324,9 +324,9 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 8
-    if(wakeup_reason == WU_TIMEOUT) {
+    if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x04;
-    } else if(wakeup_reason != WU_TAG_DETECT) {
+    } else if(!(wakeup_reason & WU_TAG_DETECT)) {
         return 0xffff;
     }
     idle_settings.dac_low = idle_settings.dac_high - 8;
