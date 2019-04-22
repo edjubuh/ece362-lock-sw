@@ -8,7 +8,7 @@ void ssd1306_cmds(uint8_t const * const, const size_t);
 
 void ssd1306_init(void) 
 {
-	RCC->AHBENR |= RCC_AHBENR_GPIOBEN | RCC_AHBENR_DMA1EN;
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 
 	// PB3: SCK
 	// PB4: D/C
@@ -142,6 +142,23 @@ void ssd1306_fills(uint8_t const * const buf) {
 		.col_wid = 1
 	};
 	ssd1306_fill(buf, bounds, buf_bounds);
+}
+
+void ssd1306_clear() {
+	static const struct ssd1306_bounds bounds = {
+		.col_start = 0,
+		.col_end = SSD1306_WIDTH,
+		.page_start = 0,
+		.page_end = SSD1306_HEIGHT
+	};
+	static const struct ssd1306_buf_bounds buf_bounds = {
+		.n_cols = SSD1306_WIDTH,
+		.n_rows = SSD1306_HEIGHT,
+		.row_len = 0,
+		.col_wid = 0
+	};
+	uint8_t clear = 0;
+	ssd1306_fill(&clear, bounds, buf_bounds);
 }
 
 void ssd1306_sleep() {
