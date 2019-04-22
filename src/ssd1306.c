@@ -98,21 +98,23 @@ void ssd1306_cmds(uint8_t const * const bytes, const size_t len)
 	GPIOB->BSRR = GPIO_BSRR_BS_7; // Raise SS/CS (unselect OLED)
 }
 
-void ssd1306_data(uint8_t const * const buffer, const size_t buff_size) {
+void ssd1306_data(uint8_t const * const buffer, struct ssd1306_buf_bounds const * const buf_bounds) {
 	GPIOB->BSRR = GPIO_BSRR_BS_4; // sending data
 	
 	GPIOB->BSRR = GPIO_BSRR_BR_7; // Lower SS/CS (select OLED)
 
-	for(size_t i = 0; i < buff_size; i++) {
+	for(size_t i = 0; i < buf_bounds->n_rows; i++) {
+		for(size_t j = 0; j < buf_bounds->n_cols; j++) {
 		while(!(SPI1->SR & SPI_SR_TXE));
-		*(uint8_t*)&SPI1->DR = buffer[i];
+		*(uint8_t*)&SPI1->DR = buffer[(i * buf_bounds->row_len) + (j * buf_bounds->col_wid)];
+		}
 	}
 
 	while((SPI1->SR & SPI_SR_BSY));
 	GPIOB->BSRR = GPIO_BSRR_BS_7; // Raise SS/CS (unselect OLED)
 }
 
-void ssd1306_fill(uint8_t const * const buf, const struct ssd1306_bounds bounds) {
+void ssd1306_fill(uint8_t const * const buf, const struct ssd1306_bounds bounds, const struct ssd1306_buf_bounds buf_bounds) {
 	uint8_t bound_cmd[] = {
 		0x21,
 		bounds.col_start,
@@ -123,22 +125,23 @@ void ssd1306_fill(uint8_t const * const buf, const struct ssd1306_bounds bounds)
 	};
 	ssd1306_cmds(bound_cmd, sizeof bound_cmd);
 
-	size_t size = bounds.size;
-	if(!size) {
-		size = (bounds.col_end - bounds.col_start) * (bounds.page_end - bounds.page_start);
-	}
-
-	ssd1306_data(buf, size);
+	ssd1306_data(buf, &buf_bounds);
 }
 
 void ssd1306_fills(uint8_t const * const buf) {
-	struct ssd1306_bounds bounds = {
+	static const struct ssd1306_bounds bounds = {
 		.col_start = 0,
 		.col_end = SSD1306_WIDTH,
 		.page_start = 0,
 		.page_end = SSD1306_HEIGHT
 	};
-	ssd1306_fill(buf, bounds);
+	static const struct ssd1306_buf_bounds buf_bounds = {
+		.n_cols = SSD1306_WIDTH,
+		.n_rows = SSD1306_HEIGHT,
+		.row_len = SSD1306_WIDTH,
+		.col_wid = 1
+	};
+	ssd1306_fill(buf, bounds, buf_bounds);
 }
 
 void ssd1306_sleep() {

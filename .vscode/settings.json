@@ -1,7 +1,8 @@
 {
     "files.associations": {
         "*.ll": "lex",
-        "stm32f0_discovery.h": "c"
+        "stm32f0_discovery.h": "c",
+        "ssd1306.h": "c"
     },
     "cquery.cacheDirectory": "${workspaceFolder}/.vscode/cquery_cached_index/",
     "cquery.launch.command": "C:\\usr\\cquery-win-x64\\cquery.exe",
