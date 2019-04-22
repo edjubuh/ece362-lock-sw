@@ -194,6 +194,7 @@ struct cr95hf_rx idle_response;
 uint8_t cr95hf_idle(struct cr95hf_idle_tx const * const settings) {
     rx = &idle_response;
     cr95hf_send_cmd(0x07, (uint8_t const * const)settings, sizeof *settings);
+    millis_wait(2);
     return 0;
 }
 

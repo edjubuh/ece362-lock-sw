@@ -127,7 +127,6 @@ int main(void)
 
     if(cr95hf_woke_up) {
       cr95hf_idle(&idle_setting);
-      millis_wait(2); // wait for idle command to be sent
     }
     have_uid = 0;
     cr95hf_woke_up = 0;
