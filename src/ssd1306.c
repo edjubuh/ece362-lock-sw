@@ -38,10 +38,10 @@ void ssd1306_init(void)
         0xAE, // display off
         0x20, // Set Memory Addressing Mode
         0x00, // horizontal addressing mode
-        0xC8, // Normal Scan Mode (not flipped vertically)
+        0xC0, // Normal Scan Mode (not flipped vertically)
         0x81, // Set contrast
         0x8F, // Maximum contrast
-        0xA1, // flip horizontally
+        0xA0, // flip horizontally
         0xA6, // Non-inverted color
         0xA8, // set multiplex ratio
         0x3F, // to 63

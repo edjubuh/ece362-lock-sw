@@ -117,15 +117,19 @@ int main(void)
           break;
         }
         if(matched) {
+          display_access();
           STM_EVAL_LEDOn(LED3);
           millis_wait(5000);
           STM_EVAL_LEDOff(LED3);
+        } else {
+          display_no_access();
         }
       }
     }
     millis_wait(2000);
 
     if(cr95hf_woke_up) {
+      idle_setting.dac_data = cr95hf_calibrate_tag_detection();
       cr95hf_idle(&idle_setting);
     }
     have_uid = 0;
