@@ -1,5 +1,18 @@
 #include "stm32f0xx.h"
 
+#include "common.h"
+#include <sys/types.h>
+
+uint8_t pressed[4];
+volatile uint8_t pos;
+
+static const char KEYMAP[4][3] = {
+    {'#', '0', '*'},
+    {'9', '8', '7'},
+    {'6', '5', '4'},
+    {'3', '2', '1'}
+};
+
 void numpad_init()
 {
     // Configure PA8-PA11 (4 pins) to be inputs to timer 1 channels 1-4 (also have pull-down resistors)
@@ -15,7 +28,7 @@ void numpad_init()
     GPIOB->MODER |= GPIO_MODER_MODER13_0 | GPIO_MODER_MODER14_0 | GPIO_MODER_MODER15_0;
 
     RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-    TIM3->PSC = (48 * 10) - 1; // counter period is 20 microseconds
+    TIM3->PSC = (48 * 100 / 2) - 1; // counter period is 200 microseconds
     TIM3->ARR = 1;
     TIM3->DIER = TIM_DIER_UIE;
     TIM3->CR1 |= TIM_CR1_CEN;
@@ -25,11 +38,13 @@ void numpad_init()
     TIM1->CCMR1 = TIM1->CCMR2 = 0xF1F1;
     TIM1->CCER = TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E;
     TIM1->DIER = TIM_DIER_CC1IE | TIM_DIER_CC2IE | TIM_DIER_CC3IE | TIM_DIER_CC4IE;
-    TIM1->CR1 |= TIM_CR1_CEN;
+    TIM1->CR1 = TIM_CR1_CKD_1 | TIM_CR1_CEN;
     NVIC->ISER[0] = 1 << TIM1_CC_IRQn;
+
+    pos = 0;
 }
 
-uint32_t tim3_cnt = 0;
+volatile uint32_t tim3_cnt = 0;
 void TIM3_IRQHandler() {
 	tim3_cnt = (tim3_cnt + 1) & 0x7;
 	GPIOB->BSRR = (((tim3_cnt & 0x1) << (tim3_cnt >> 1)) << 13) | GPIO_BSRR_BR_13 | GPIO_BSRR_BR_14 | GPIO_BSRR_BR_15;
@@ -38,7 +53,8 @@ void TIM3_IRQHandler() {
 
 uint8_t last_column = 0xff;
 uint8_t last_row = 0xff;
-// MUST READ TIM3->CNT WITHIN 20 MICROSECONDS!
+uint32_t last_capture = 0;
+// MUST READ TIM3_CNT WITHIN 20 MICROSECONDS!
 void TIM1_CC_IRQHandler(void)
 {
     register uint8_t column = tim3_cnt >> 1;
@@ -61,9 +77,32 @@ void TIM1_CC_IRQHandler(void)
         row = 3;
     }
 
-    if(last_row == row && last_column == column) {
-        asm("nop");
+    if(row != 0xff) {
+        register uint32_t current_time = millis();
+        if(last_capture + 500 < current_time && (last_capture + 1000 < current_time || last_column != column || last_row != row)) {
+            last_capture = current_time;
+            if(pos < 4) {
+                pressed[pos] = KEYMAP[row][column];
+                pos += 1;
+            } else {
+                pos = 5;
+            }
+        }
+        last_column = column;
+        last_row = row;
     }
-    last_row = row;
-    last_column = column;
+}
+
+uint8_t get_pressed_keys(uint8_t * const keys) {
+    if(keys) {
+        size_t n = pos > 4 ? 4 : pos;
+        for(size_t i = 0; i < n; i++) {
+            keys[i] = pressed[i];
+        }
+    }
+    return pos;
+}
+
+void reset_keys() {
+    pos = 0;
 }

@@ -175,21 +175,24 @@ int main(void)
 
   for (;;)
   {
-    STM_EVAL_LEDToggle(LED3);
-    millis_wait(500);
-    if(cr95hf_is_awake(NULL) == 0x00) {
-      iso14443a_proto_select();
-      if (iso14443a_tag_present())
-      {
-        STM_EVAL_LEDOn(LED4);
-        struct iso14443a_uid uid;
-        uint8_t sak = iso14443a_get_uid(&uid);
-        asm("nop");
-        millis_wait(20);
-      }
-      STM_EVAL_LEDOff(LED4);
-      cr95hf_idle(&idle_setting);
-    }
+    asm("wfi");
+    uint8_t chars[4];
+    display_filled(get_pressed_keys(chars));
+    // STM_EVAL_LEDToggle(LED3);
+    // millis_wait(500);
+    // if(cr95hf_is_awake(NULL) == 0x00) {
+    //   iso14443a_proto_select();
+    //   if (iso14443a_tag_present())
+    //   {
+    //     STM_EVAL_LEDOn(LED4);
+    //     struct iso14443a_uid uid;
+    //     uint8_t sak = iso14443a_get_uid(&uid);
+    //     asm("nop");
+    //     millis_wait(20);
+    //   }
+    //   STM_EVAL_LEDOff(LED4);
+    //   cr95hf_idle(&idle_setting);
+    // }
 
     // ssd1306_sleep();
     // millis_wait(500);

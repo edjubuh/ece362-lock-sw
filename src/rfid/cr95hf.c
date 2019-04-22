@@ -6,7 +6,7 @@
 
 // IRQ Handler for receiving data
 // DMA solution won't work because we won't know how much data to receive. Could do a mix of both... but why?
-volatile struct cr95hf_rx * rx;
+struct cr95hf_rx * volatile rx;
 volatile bool ready = false;
 void USART2_IRQHandler(void)
 {
@@ -103,6 +103,7 @@ void cr95hf_send_cmd(uint8_t cmd, uint8_t const *const buf, uint8_t len)
 
 void cr95hf_recv_data(struct cr95hf_rx *const resp)
 {
+    rx = resp;
     const uint32_t start = millis();
     while(!ready /*&& (millis() - start) < 10*/) asm("wfi");
     if(!ready) {
