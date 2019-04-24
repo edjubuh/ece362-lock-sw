@@ -51,7 +51,7 @@ void numpad_init()
 volatile uint32_t tim_cnt = 0;
 void TIM16_IRQHandler() {
 	tim_cnt = (tim_cnt + 1) & 0x7;
-	GPIOB->BSRR = (((tim_cnt & 0x1) << (tim_cnt >> 1)) << 13) | GPIO_BSRR_BR_13 | GPIO_BSRR_BR_14 | GPIO_BSRR_BR_15;
+	GPIOB->BSRR = ((((tim_cnt & 0x1) << (tim_cnt >> 1)) & 0x7) << 13) | GPIO_BSRR_BR_13 | GPIO_BSRR_BR_14 | GPIO_BSRR_BR_15;
 	TIM16->SR &= ~TIM_SR_UIF;
 }
 

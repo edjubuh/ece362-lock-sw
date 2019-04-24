@@ -20,12 +20,11 @@
 #include "rfid/iso14443a.h"
 #include "ssd1306.h"
 
-#define NUM_COMBOS 2
 struct combo {
   uint8_t keys[4];
   struct iso14443a_uid uid;
 };
-const static struct combo COMBOS[NUM_COMBOS] = {
+const static struct combo COMBOS[] = {
   {
     .keys = {'1','2','3','4'},
     .uid = {.size = ISO14443A_NBBYTE_UIDSINGLE, .uid = { 0x97, 0x4d, 0x28, 0xd9} }
@@ -33,8 +32,14 @@ const static struct combo COMBOS[NUM_COMBOS] = {
   {
     .keys = {'1','2','3','8'},
     .uid = {.size = ISO14443A_NBBYTE_UIDDOUBLE, .uid = { 4, 53, 45, 155, 55, 66, 128, 129, 56, 81}}
+  },
+  {
+    .keys = {'*','*','*','*'},
+    .uid = {.size = ISO14443A_NBBYTE_UIDSINGLE, .uid = { 0xdc, 0xfc, 0xad, 0xe2} }
   }
 };
+
+#define NUM_COMBOS (sizeof COMBOS / sizeof *COMBOS)
 
 int main(void)
 {
@@ -48,8 +53,13 @@ int main(void)
   STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_GPIO);
 
   for(size_t i = 0; i < 50; i++) {
-    if(cr95hf_echo() == 0x55) break;
+    if(cr95hf_echo()) break;
   }
+
+  RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
+  GPIOB->MODER &= ~GPIO_MODER_MODER0;
+  GPIOB->MODER |= GPIO_MODER_MODER0_0;
+  GPIOB->BSRR = GPIO_BSRR_BR_0;
 
   struct cr95hf_idle_tx idle_setting = {
     .wu_src = WU_TAG_DETECT | WU_LOW_IRQ_IN,
@@ -78,9 +88,10 @@ int main(void)
 
   for (;;)
   {
+    STM_EVAL_LEDOn(LED4);
     asm("wfi");
-
     STM_EVAL_LEDOff(LED4);
+
     systick_enable();
     micros_wait(1500); // idle for 1.5 millisecond to get a systick
     ssd1306_wake();
@@ -118,8 +129,10 @@ int main(void)
         }
         if(matched) {
           display_access();
+          GPIOB->BSRR = GPIO_BSRR_BS_0;
           STM_EVAL_LEDOn(LED3);
           millis_wait(5000);
+          GPIOB->BSRR = GPIO_BSRR_BR_0;
           STM_EVAL_LEDOff(LED3);
         } else {
           display_no_access();
@@ -136,7 +149,6 @@ int main(void)
     cr95hf_woke_up = 0;
     reset_keys();
     ssd1306_sleep();
-    STM_EVAL_LEDOn(LED4);
     systick_disable();
     micros_wait(2500);
   }
