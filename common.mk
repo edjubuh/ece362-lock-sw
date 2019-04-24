@@ -2,7 +2,7 @@ ARCHTUPLE=arm-none-eabi-
 DEVICE=STM32F0-Discovery
 
 MFLAGS=-mcpu=cortex-m0
-CPPFLAGS=-Og -DUSE_STDPERIPH_DRIVER
+CPPFLAGS=-Os -DUSE_STDPERIPH_DRIVER
 GCCFLAGS=-ffunction-sections -fdata-sections -fdiagnostics-color -g
 
 WARNFLAGS+=

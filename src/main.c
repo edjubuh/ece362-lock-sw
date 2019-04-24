@@ -30,7 +30,7 @@ const static struct combo COMBOS[] = {
     .uid = {.size = ISO14443A_NBBYTE_UIDSINGLE, .uid = { 0x97, 0x4d, 0x28, 0xd9} }
   },
   {
-    .keys = {'1','2','3','8'},
+    .keys = {'2','5','8','#'},
     .uid = {.size = ISO14443A_NBBYTE_UIDDOUBLE, .uid = { 4, 53, 45, 155, 55, 66, 128, 129, 56, 81}}
   },
   {
@@ -79,7 +79,7 @@ int main(void)
   ssd1306_sleep();
   STM_EVAL_LEDOn(LED4);
   systick_disable();
-  micros_wait(1500);
+  micros_wait(2000);
 
   uint8_t chars[4];
   uint8_t num_pressed = 0;
