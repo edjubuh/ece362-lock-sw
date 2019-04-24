@@ -48,9 +48,7 @@ int main(void)
   cr95hf_init();
   numpad_init();
 
-  STM_EVAL_LEDInit(LED3);
   STM_EVAL_LEDInit(LED4);
-  STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_GPIO);
 
   for(size_t i = 0; i < 50; i++) {
     if(cr95hf_echo()) break;
@@ -77,7 +75,6 @@ int main(void)
 
   cr95hf_idle(&idle_setting);
   ssd1306_sleep();
-  STM_EVAL_LEDOn(LED4);
   systick_disable();
   micros_wait(2000);
 
@@ -130,10 +127,8 @@ int main(void)
         if(matched) {
           display_access();
           GPIOB->BSRR = GPIO_BSRR_BS_0;
-          STM_EVAL_LEDOn(LED3);
           millis_wait(5000);
           GPIOB->BSRR = GPIO_BSRR_BR_0;
-          STM_EVAL_LEDOff(LED3);
         } else {
           display_no_access();
           millis_wait(2000);
