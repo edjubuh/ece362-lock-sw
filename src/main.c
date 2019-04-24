@@ -73,7 +73,7 @@ int main(void)
     .swing_count = 0x3F, // recommended value
     .max_sleep = 0 // unused
   };
-  ssd1306_clear();
+  ssd1306_clear(0);
 
   cr95hf_idle(&idle_setting);
   ssd1306_sleep();
@@ -136,10 +136,11 @@ int main(void)
           STM_EVAL_LEDOff(LED3);
         } else {
           display_no_access();
+          millis_wait(2000);
         }
       }
     }
-    millis_wait(2000);
+    millis_wait(250);
 
     if(cr95hf_woke_up) {
       idle_setting.dac_data = cr95hf_calibrate_tag_detection();

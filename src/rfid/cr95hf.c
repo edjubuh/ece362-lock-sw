@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "stm32f0xx.h"
+#include "ssd1306.h"
 
 // IRQ Handler for receiving data
 // DMA solution won't work because we won't know how much data to receive. Could do a mix of both... but why?
@@ -247,24 +248,28 @@ uint16_t cr95hf_calibrate_tag_detection() {
         .max_sleep = 0x01
     };
     // Step 0
+    ssd1306_clear(0xff);
     uint8_t wakeup_reason;
     cr95hf_idle(&idle_settings);
     if(cr95hf_wait_awake(&wakeup_reason) || wakeup_reason != WU_TAG_DETECT) {
         return 0xffff;
     }
     // Step 1
+    ssd1306_set_row(0, 0);
     idle_settings.dac_high = 0xFC;
     cr95hf_idle(&idle_settings);
     if(cr95hf_wait_awake(&wakeup_reason) || wakeup_reason != WU_TIMEOUT) {
         return 0xffff;
     }
     // Step 2
+    ssd1306_set_row(0, 1);
     idle_settings.dac_high -= 0x80;
     cr95hf_idle(&idle_settings);
     if(cr95hf_wait_awake(&wakeup_reason)) {
         return 0xffff;
     }
     // Step 3
+    ssd1306_set_row(0, 2);
     if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x40;
     } else if(wakeup_reason & WU_TAG_DETECT) {
@@ -277,6 +282,7 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 4
+    ssd1306_set_row(0, 3);
     if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x20;
     } else if(wakeup_reason & WU_TAG_DETECT) {
@@ -289,6 +295,7 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 5
+    ssd1306_set_row(0, 4);
     if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x10;
     } else if(wakeup_reason & WU_TAG_DETECT) {
@@ -301,6 +308,7 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 6
+    ssd1306_set_row(0, 5);
     if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x08;
     } else if(wakeup_reason & WU_TAG_DETECT) {
@@ -313,6 +321,7 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 7
+    ssd1306_set_row(0, 6);
     if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x04;
     } else if(wakeup_reason & WU_TAG_DETECT) {
@@ -325,6 +334,7 @@ uint16_t cr95hf_calibrate_tag_detection() {
         return 0xffff;
     }
     // Step 8
+    ssd1306_set_row(0, 7);
     if(wakeup_reason & WU_TIMEOUT) {
         idle_settings.dac_high -= 0x04;
     } else if(!(wakeup_reason & WU_TAG_DETECT)) {

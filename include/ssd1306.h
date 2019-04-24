@@ -31,6 +31,7 @@ void ssd1306_wake();
 
 void ssd1306_fill(uint8_t const * const buf, const struct ssd1306_bounds bounds, const struct ssd1306_buf_bounds buf_bounds);
 void ssd1306_fills(uint8_t const * const buf);
-void ssd1306_clear();
+void ssd1306_clear(const uint8_t val);
+void ssd1306_set_row(const uint8_t val, const uint8_t row);
 
 #endif

@@ -61,6 +61,7 @@ void ssd1306_init(void)
         0xAF, // turn on SSD1306
     };
     ssd1306_cmds(init_seq, sizeof init_seq);
+    ssd1306_clear(0);
 }
 
 void ssd1306_reset(void) {
@@ -144,7 +145,7 @@ void ssd1306_fills(uint8_t const * const buf) {
 	ssd1306_fill(buf, bounds, buf_bounds);
 }
 
-void ssd1306_clear() {
+void ssd1306_clear(const uint8_t val) {
 	static const struct ssd1306_bounds bounds = {
 		.col_start = 0,
 		.col_end = SSD1306_WIDTH,
@@ -157,8 +158,23 @@ void ssd1306_clear() {
 		.row_len = 0,
 		.col_wid = 0
 	};
-	uint8_t clear = 0;
-	ssd1306_fill(&clear, bounds, buf_bounds);
+	ssd1306_fill(&val, bounds, buf_bounds);
+}
+
+void ssd1306_set_row(const uint8_t val, const uint8_t row) {
+	struct ssd1306_bounds bounds = {
+		.col_start = 0,
+		.col_end = SSD1306_WIDTH,
+		.page_start = row,
+		.page_end = row + 1
+	};
+	static const struct ssd1306_buf_bounds buf_bounds = {
+		.n_cols = SSD1306_WIDTH,
+		.n_rows = 1,
+		.row_len = 0,
+		.col_wid = 0
+	};
+	ssd1306_fill(&val, bounds, buf_bounds);
 }
 
 void ssd1306_sleep() {

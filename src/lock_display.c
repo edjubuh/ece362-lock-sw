@@ -135,7 +135,7 @@ const static uint8_t X_BUFFER[48 * 6] = {
 };
 
 void display_no_access() {
-  ssd1306_clear();
+  ssd1306_clear(0);
   ssd1306_fill(X_BUFFER, X_DISP_BOUNDS, X_BUFF_BOUNDS);
 }
 
@@ -160,6 +160,6 @@ const static uint8_t Y_BUFFER[41 * 4] = {
 };
 
 void display_access() {
-  ssd1306_clear();
+  ssd1306_clear(0);
   ssd1306_fill(Y_BUFFER, Y_DISP_BOUNDS, Y_BUFF_BOUNDS);
 }
